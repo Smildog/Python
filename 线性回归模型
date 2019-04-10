@@ -13,18 +13,18 @@ from matplotlib import pyplot as plt
 
 # 导入数据
 fn = open('data.txt', 'r') #打开文件
-all_data = fn.readlines() #读取所有记录
-fn.close()                #关闭文件对象的占用
+all_data = fn.readlines()  #读取所有记录
+fn.close()                 #关闭文件对象的占用
 
 #数据预处理
 x = []
 y = []  #创建两个空列表存放自变量因变量
 for single_data in all_data:
-    tmp_data = re.split('\t|\n',single_data) #for循环对txt文件进行数据分割 
-    x.append(float(tmp_data[0]))    #将tmp_data中第1个值追加到列表中 并设置数值类型为浮点型
-    y.append(float(tmp_data[1]))    #将tmp_data中第2个值追加到列表中 并设置数值类型为浮点型
+    tmp_data = re.split('\t|\n',single_data)   #for循环对txt文件进行数据分割 
+    x.append(float(tmp_data[0]))               #将tmp_data中第1个值追加到列表中 并设置数值类型为浮点型
+    y.append(float(tmp_data[1]))               #将tmp_data中第2个值追加到列表中 并设置数值类型为浮点型
     
-x = np.array(x).reshape([-1,1]) #将列表类型转化为数组类型 1列
+x = np.array(x).reshape([-1,1])                #将列表类型转化为数组类型 1列
 y = np.array(y).reshape([-1,1])
 
 #数据分析
@@ -37,7 +37,7 @@ plt.show()
 #图形判断存在明显线性关系
 #数据建模
 model = linear_model.LinearRegression() #创建一个模型对象
-model.fit(x, y) #将x和y分别作为自变量因变量输入模型训练
+model.fit(x, y)                         #将x和y分别作为自变量因变量输入模型训练
 
 #模型评估
 model_coef = model.coef_             #获取自变量系数
