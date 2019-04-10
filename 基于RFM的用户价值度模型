@@ -1,0 +1,110 @@
+# -*- coding: utf-8 -*-
+
+'''
+背景：用户价值细分是了解用户价值度的重要途径
+ 基于订单交易的价值度模型将更适合运营需求
+描述：案例-基于RFM的用户价值度模型
+程序开发环境：win 64位
+Python版本：32位 2.7.12
+python IDE：PyCharm
+依赖库：time、numpy、pandas、mysql.connector
+程序输入：sales.csv
+
+'''
+#导入用到的库
+import pandas as pd    #导入pandas库
+import numpy  as np    #导入numpy包
+
+
+#读取原始数据
+dtypes = {'pay_date':object,'sale_num':np.int,'sale_amt':np.float32} #设置每列数据类型
+raw_data = pd.read_csv('akc_sales.csv',names=['user_id','pay_date','sale_num','sale_amt'],dtype=dtypes,index_col='user_id')
+
+# 数据审查和校验
+# 数据概览
+print(raw_data.head(4))    #打印前4条
+print(raw_data.describe()) #描述性统计
+print('-'*60)
+
+#缺失值审查
+na_cols = raw_data.isnull().any(axis=0)  #查看每一列是否具有缺失值
+print(na_cols)
+na_lines = raw_data.isnull().any(axis=1)  #查看每一行是否具有缺失值
+print(na_lines)
+print ('Total number of NA lines is: {0}'.format(na_lines.sum()))  # 查看具有缺失值的行总记录数
+#print(na_lines.sum()) # 查看具有缺失值的行总记录数
+print (raw_data[na_lines])  # 只查看具有缺失值的行信息
+print ('-' * 60)
+
+# 异常值处理
+sales_data = raw_data.dropna()  #删除缺失值
+sales_data = sales_data[sales_data['sale_amt']>=4]  #保留金额大于1的有效记录
+print(sales_data['sale_amt'].describe())
+
+#计算RFM
+#以原始数据框索引为逐渐（USERID）分别求最大值、计数、求和
+recency_value = sales_data['pay_date']   #计算原始最近一次订单时间
+frequency_value = sales_data['sale_num'] #计算原始订单频率
+monetary_value = sales_data['sale_amt']#计算原始订单总金额
+
+#日期格式转化
+recency_value= pd.to_datetime(sales_data['pay_date'],format='%Y-%m-%d') #将字符串转化为日期格式
+
+print(sales_data)
+print(sales_data.dtypes) #查看数据类型
+print('-'*60)
+
+#计算RFM得分  抽取时间为3曰22日-3月28日
+deadline_date = pd.to_datetime('2019-03-29 00:00:00') #指定一个时间节点，用户计算其他时间与该时间的距离
+r_interval = (deadline_date - recency_value).dt.days #计算R间隔
+
+r_score = pd.cut(r_interval,5,labels=[5,4,3,2,1])
+f_score = pd.cut(frequency_value,5,labels=[1,2,3,4,5])
+m_score = pd.cut(monetary_value,5,labels=[1,2,3,4,5])
+
+rfm_list=[r_score,f_score,m_score]          #将rfm三个维度组成列表
+rfm_cols = ['r_score','f_score','m_score']  #设置r、f、m三个维度列名
+print(rfm_cols)
+
+rfm_pd = pd.DataFrame(np.array(rfm_list).transpose(),dtype=np.int32,columns=rfm_cols,index=frequency_value.index) #三个索引相同随便指定个
+print(rfm_pd.head(4)) #建立rfm数据框 .transpose()纵向转置
+
+#计算RFM总得分
+#加权
+rfm_pd['rfm_wscore']=rfm_pd['r_score']*0.6+rfm_pd['f_score']*0.3+rfm_pd['m_score']*0.1
+print(rfm_pd.head(4))
+print('-'*30)
+print('Final RFM Score DESC:')
+print(rfm_pd.describe())
+
+#RFM组合
+rfm_pd_tmp = rfm_pd.copy() #为了不影响原始数据拷贝一份
+rfm_pd_tmp['r_score'] = rfm_pd_tmp['r_score'].astype('str') #数值型转字符串
+rfm_pd_tmp['f_score'] = rfm_pd_tmp['f_score'].astype('str')
+rfm_pd_tmp['m_score'] = rfm_pd_tmp['m_score'].astype('str')
+rfm_pd['rfm_comb'] = rfm_pd_tmp['r_score'].str.cat(rfm_pd_tmp['f_score']).str.cat(rfm_pd_tmp['m_score'])#str.cat字符串合并
+print(rfm_pd)
+rfm_pd.to_csv('akc_sales_rfm_score.csv') #输出
+
+
+#读取结果集
+raw_data_rfm = pd.read_csv('akc_sales_rfm_score.csv')
+
+r_count = r_score.groupby(r_score).count()
+f_count = f_score.groupby(f_score).count()
+m_count = m_score.groupby(m_score).count()
+
+#画图
+import matplotlib.pyplot as plt
+
+plt.rcParams['font.sans-serif']='SimHei'#设置中文显示
+plt.figure(figsize=(6,6))#将画布设定为正方形，则绘制的饼图是正圆
+label=['1','2','3','4','5']#定义饼图的标签，标签是列表
+explode=[0,0,0,0,0.1]#设定各项距离圆心n个半径
+values=[1594,2629,9575,79006,175282]
+plt.pie(values,explode=explode,labels=label,autopct='%3.1f%%',
+        shadow=True, labeldistance=1.1, startangle = 90,pctdistance = 0.6)#绘制饼图
+plt.title('R')#绘制标题
+plt.savefig('./2018年饼图')#保存图片
+plt.show()
+
