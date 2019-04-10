@@ -1,0 +1,57 @@
+# -*- coding: utf-8 -*-
+
+'''
+依赖库：re、numpy、sklearn、matplotlib
+程序输入：data.txt
+根据促销费用预测销量
+'''
+# 导入库
+import re         #正则 处理文本
+import numpy as np
+from sklearn import linear_model
+from matplotlib import pyplot as plt
+
+# 导入数据
+fn = open('data.txt', 'r') #打开文件
+all_data = fn.readlines() #读取所有记录
+fn.close()                #关闭文件对象的占用
+
+#数据预处理
+x = []
+y = []  #创建两个空列表存放自变量因变量
+for single_data in all_data:
+    tmp_data = re.split('\t|\n',single_data) #for循环对txt文件进行数据分割 
+    x.append(float(tmp_data[0]))    #将tmp_data中第1个值追加到列表中 并设置数值类型为浮点型
+    y.append(float(tmp_data[1]))    #将tmp_data中第2个值追加到列表中 并设置数值类型为浮点型
+    
+x = np.array(x).reshape([-1,1]) #将列表类型转化为数组类型 1列
+y = np.array(y).reshape([-1,1])
+
+#数据分析
+
+plt.stem(x,y)
+plt.errorbar(x,y)
+plt.scatter(x,y)  #散点图
+plt.show()
+
+#图形判断存在明显线性关系
+#数据建模
+model = linear_model.LinearRegression() #创建一个模型对象
+model.fit(x, y) #将x和y分别作为自变量因变量输入模型训练
+
+#模型评估
+model_coef = model.coef_             #获取自变量系数
+model_intercept = model.intercept_   #获取截距
+r2 = model.score(x,y)                #R方越大越好，模型越精确，回归效果越显著。R平方介于0~1之间，
+#越接近1，回归拟合效果越好，一般认为超过0.8的模型拟合优度比较高,这里是0.79，整体拟合效果不错
+# y = model_coef*x+model_intercept
+
+#销售预测
+new_x = 84610
+pre_y = model.predict(np.array(new_x).reshape([-1,1]))  #new_x转换为numpy数组并做reshape 不然会报错 
+print(np.round(pre_y)) #四舍五入为整形
+
+#输出为[[190403.]] 即为预测值
+
+
+
